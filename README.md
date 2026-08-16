@@ -2,41 +2,6 @@
 
 A small Spring Boot project demonstrating stateless authentication with Spring Security, a custom `UserDetailsService` backed by JPA/MySQL, and JWT-based session-free auth. Built as a learning/reference project, not production-ready (see [Code Review](#code-review) below).
 
-## Tech Stack
-
-- Java 19, Spring Boot 3.5.3
-- Spring Security (DAO authentication provider + custom JWT filter)
-- Spring Data JPA + MySQL
-- `jjwt` 0.11.5 (JSON Web Tokens)
-- Maven (wrapper included)
-
-## Project Structure
-
-```
-src/main/java/com/example/spring/security/demo/
-├── SpringSecurityDemoApplication.java   # entry point
-├── HelloController.java                 # /public, /private demo endpoints
-├── config/
-│   ├── SecurityConfig.java              # filter chain, auth provider, bcrypt
-│   └── JWTFilter.java                   # extracts + validates Bearer token per request
-├── controller/
-│   ├── UserController.java              # /users/save, /users/login, /users/get_all, ...
-│   └── StudentController.java           # unrelated in-memory demo CRUD (no auth)
-├── dto/UserPrinciple.java               # UserDetails wrapper around the User entity
-├── entity/{User,Student}.java
-├── repository/UserRepository.java
-└── service/
-    ├── JWTService.java                  # token generation/validation
-    ├── MyUserDetails.java               # UserDetailsService implementation
-    └── UserService.java                 # registration + login/verify
-```
-
-## How It Works
-
-1. `POST /users/save` registers a user; the password is BCrypt-hashed (strength 12) before being persisted.
-2. `POST /users/login` authenticates the submitted credentials via `AuthenticationManager` → `DaoAuthenticationProvider`, and on success returns a signed JWT (1 hour expiry).
-3. Every subsequent request passes the token as `Authorization: Bearer <token>`. `JWTFilter` extracts the username, loads the user via `MyUserDetails`, validates the token, and populates the `SecurityContext` — no server-side session (`SessionCreationPolicy.STATELESS`).
-
 ## Security Concepts & Flow Diagrams
 
 ```mermaid
@@ -87,6 +52,41 @@ flowchart TD
 Spring Security sits in front of every request as a **chain of servlet filters**. Each filter gets a chance to inspect the request, and eventually one of them decides *who* the caller is and writes an `Authentication` object into the `SecurityContext`. Everything downstream (`@PreAuthorize`, `.authorizeHttpRequests(...)`, your controller) just reads that context — it doesn't care whether the caller proved their identity with a password, a token, or a redirect to Google.
 
 The three branches above (Basic, JWT, OAuth2) are three different ways to answer the same question — "who is calling?" — with different tradeoffs. This repo implements **JWT** (and, currently, also leaves **Basic Auth** wired in — see the [code review](#code-review) note on that). **OAuth2 is not implemented here**; it's explained below for comparison since it's the natural next step from JWT.
+
+## Tech Stack
+
+- Java 19, Spring Boot 3.5.3
+- Spring Security (DAO authentication provider + custom JWT filter)
+- Spring Data JPA + MySQL
+- `jjwt` 0.11.5 (JSON Web Tokens)
+- Maven (wrapper included)
+
+## Project Structure
+
+```
+src/main/java/com/example/spring/security/demo/
+├── SpringSecurityDemoApplication.java   # entry point
+├── HelloController.java                 # /public, /private demo endpoints
+├── config/
+│   ├── SecurityConfig.java              # filter chain, auth provider, bcrypt
+│   └── JWTFilter.java                   # extracts + validates Bearer token per request
+├── controller/
+│   ├── UserController.java              # /users/save, /users/login, /users/get_all, ...
+│   └── StudentController.java           # unrelated in-memory demo CRUD (no auth)
+├── dto/UserPrinciple.java               # UserDetails wrapper around the User entity
+├── entity/{User,Student}.java
+├── repository/UserRepository.java
+└── service/
+    ├── JWTService.java                  # token generation/validation
+    ├── MyUserDetails.java               # UserDetailsService implementation
+    └── UserService.java                 # registration + login/verify
+```
+
+## How It Works
+
+1. `POST /users/save` registers a user; the password is BCrypt-hashed (strength 12) before being persisted.
+2. `POST /users/login` authenticates the submitted credentials via `AuthenticationManager` → `DaoAuthenticationProvider`, and on success returns a signed JWT (1 hour expiry).
+3. Every subsequent request passes the token as `Authorization: Bearer <token>`. `JWTFilter` extracts the username, loads the user via `MyUserDetails`, validates the token, and populates the `SecurityContext` — no server-side session (`SessionCreationPolicy.STATELESS`).
 
 ### 1. HTTP Basic Authentication
 
