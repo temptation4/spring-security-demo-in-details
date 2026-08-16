@@ -39,8 +39,6 @@ src/main/java/com/example/spring/security/demo/
 
 ## Security Concepts & Flow Diagrams
 
-Spring Security sits in front of every request as a **chain of servlet filters**. Each filter gets a chance to inspect the request, and eventually one of them decides *who* the caller is and writes an `Authentication` object into the `SecurityContext`. Everything downstream (`@PreAuthorize`, `.authorizeHttpRequests(...)`, your controller) just reads that context — it doesn't care whether the caller proved their identity with a password, a token, or a redirect to Google.
-
 ```mermaid
 flowchart TD
     A[Incoming HTTP request] --> B["Security Filter Chain\n(ordered list of filters)"]
@@ -86,7 +84,9 @@ flowchart TD
     class P deny;
 ```
 
-The three boxes on the left (Basic, JWT, OAuth2) are three different ways to answer the same question — "who is calling?" — with different tradeoffs. This repo implements **JWT** (and, currently, also leaves **Basic Auth** wired in — see the [code review](#code-review) note on that). **OAuth2 is not implemented here**; it's explained below for comparison since it's the natural next step from JWT.
+Spring Security sits in front of every request as a **chain of servlet filters**. Each filter gets a chance to inspect the request, and eventually one of them decides *who* the caller is and writes an `Authentication` object into the `SecurityContext`. Everything downstream (`@PreAuthorize`, `.authorizeHttpRequests(...)`, your controller) just reads that context — it doesn't care whether the caller proved their identity with a password, a token, or a redirect to Google.
+
+The three branches above (Basic, JWT, OAuth2) are three different ways to answer the same question — "who is calling?" — with different tradeoffs. This repo implements **JWT** (and, currently, also leaves **Basic Auth** wired in — see the [code review](#code-review) note on that). **OAuth2 is not implemented here**; it's explained below for comparison since it's the natural next step from JWT.
 
 ### 1. HTTP Basic Authentication
 
