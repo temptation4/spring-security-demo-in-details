@@ -42,24 +42,48 @@ src/main/java/com/example/spring/security/demo/
 Spring Security sits in front of every request as a **chain of servlet filters**. Each filter gets a chance to inspect the request, and eventually one of them decides *who* the caller is and writes an `Authentication` object into the `SecurityContext`. Everything downstream (`@PreAuthorize`, `.authorizeHttpRequests(...)`, your controller) just reads that context — it doesn't care whether the caller proved their identity with a password, a token, or a redirect to Google.
 
 ```mermaid
-flowchart LR
+flowchart TD
     A[Incoming HTTP request] --> B["Security Filter Chain\n(ordered list of filters)"]
     B --> C{Which filter\nhandles this request?}
+
     C -->|"Authorization: Basic ..."| D[BasicAuthenticationFilter]
-    C -->|"Authorization: Bearer ..."| E["JWTFilter (custom, this repo)"]
+    C -->|"Authorization: Bearer ..."| E["JWTFilter\n(custom, this repo)"]
     C -->|"OAuth2 login redirect"| F[OAuth2LoginAuthenticationFilter]
+
     D --> G[AuthenticationManager]
-    E --> H["Validate signature + expiry\n(no AuthenticationManager needed)"]
-    F --> I["Exchange code for token\nwith the Authorization Server"]
     G --> J[UserDetailsService + PasswordEncoder]
+
+    E --> H["Validate signature + expiry\n(no AuthenticationManager needed)"]
     H --> K[Load UserDetails by username]
-    I --> L[Load/create local user from ID token claims]
+
+    F --> I["Exchange code for token\nwith the Authorization Server"]
+    I --> L[Load/create local user\nfrom ID token claims]
+
     J --> M[SecurityContext holds Authentication]
     K --> M
     L --> M
+
     M --> N{authorizeHttpRequests rule\nfor this path}
     N -->|permitted / authenticated| O[Controller executes]
     N -->|denied| P["401 Unauthorized / 403 Forbidden"]
+
+    classDef entry fill:#3b4252,stroke:#3b4252,color:#fff,font-weight:bold;
+    classDef decision fill:#ebcb8b,stroke:#b8860b,color:#2b2b2b,font-weight:bold;
+    classDef basic fill:#5e81ac,stroke:#4c6690,color:#fff;
+    classDef jwt fill:#8f6fc9,stroke:#6d4fa3,color:#fff;
+    classDef oauth fill:#4caf7d,stroke:#357a5b,color:#fff;
+    classDef shared fill:#bf616a,stroke:#943842,color:#fff,font-weight:bold;
+    classDef deny fill:#d9534f,stroke:#a83a37,color:#fff;
+    classDef allow fill:#4caf50,stroke:#357a38,color:#fff;
+
+    class A,B entry;
+    class C,N decision;
+    class D,G,J basic;
+    class E,H,K jwt;
+    class F,I,L oauth;
+    class M shared;
+    class O allow;
+    class P deny;
 ```
 
 The three boxes on the left (Basic, JWT, OAuth2) are three different ways to answer the same question — "who is calling?" — with different tradeoffs. This repo implements **JWT** (and, currently, also leaves **Basic Auth** wired in — see the [code review](#code-review) note on that). **OAuth2 is not implemented here**; it's explained below for comparison since it's the natural next step from JWT.
